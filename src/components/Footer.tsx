@@ -33,6 +33,7 @@ export default function Footer() {
         <div className="border-t-2 border-pink-400 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-purple-600 text-sm font-light">© 2024 DesiSwagTunes. All rights reserved.</p>
           <div className="flex gap-4 mt-4 md:mt-0">
+            <a href="tel:+19843023964" className="text-purple-600 hover:text-purple-900 transition">+1 (984) 302-3964</a>
             <a href="#" className="text-purple-600 hover:text-purple-900 transition">Twitter</a>
             <a href="#" className="text-purple-600 hover:text-purple-900 transition">Instagram</a>
             <a href="#" className="text-purple-600 hover:text-purple-900 transition">Facebook</a>
