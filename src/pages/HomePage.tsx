@@ -46,7 +46,7 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
                 onClick={() => onPlay(song)}
                 className="group flex flex-col rounded overflow-hidden bg-gradient-to-br from-pink-200 to-purple-200 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-pink-300 cursor-pointer">
                 <div className="relative overflow-hidden h-40 bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300">
-                  <div className="w-full h-full flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">🎵</div>
+                  <img src={song.image} alt={song.title} className="w-full h-full object-cover" />
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

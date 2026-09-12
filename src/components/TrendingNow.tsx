@@ -28,10 +28,15 @@ export default function TrendingNow({
             <div
               key={song.id}
               onClick={() => onPlay(song)}
-              className="flex items-center rounded bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300 p-4 hover:shadow-lg transition-all transform hover:translate-x-2 cursor-pointer group border-2 border-pink-400 shadow-md hover:shadow-xl">
-              <span className="mr-4 font-black text-lg text-purple-700 w-8">
+              className="flex items-center gap-3 rounded bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300 p-4 hover:shadow-lg transition-all transform hover:translate-x-2 cursor-pointer group border-2 border-pink-400 shadow-md hover:shadow-xl">
+              <span className="font-black text-lg text-purple-700 w-6 text-center">
                 #{index + 1}
               </span>
+              <img
+                src={song.image}
+                alt={song.title}
+                className="w-12 h-12 rounded object-cover border border-pink-400"
+              />
               <div className="flex-1 min-w-0">
                 <h4 className="font-semibold text-purple-900 group-hover:text-purple-700 transition-all truncate">
                   {song.title}

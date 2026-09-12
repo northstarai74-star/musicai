@@ -8,7 +8,7 @@ export const songs: Song[] = [
     language: 'Hindi',
     duration: 213,
     featured: true,
-    image: '/images/song-1.jpg',
+    image: '/images/song-1.avif',
   },
   {
     id: '2',
@@ -28,7 +28,7 @@ export const songs: Song[] = [
     duration: 203,
     featured: true,
     trending: true,
-    image: '/images/song-3.jpg',
+    image: '/images/song-3.webp',
   },
   {
     id: '4',
@@ -56,7 +56,7 @@ export const songs: Song[] = [
     language: 'Punjabi',
     duration: 196,
     trending: true,
-    image: '/images/song-6.jpg',
+    image: '/images/song-6.avif',
   },
   {
     id: '7',
@@ -65,7 +65,7 @@ export const songs: Song[] = [
     language: 'Hindi',
     duration: 185,
     trending: true,
-    image: '/images/song-7.jpg',
+    image: '/images/song-7.webp',
   },
   {
     id: '8',
@@ -74,7 +74,7 @@ export const songs: Song[] = [
     language: 'English',
     duration: 200,
     trending: true,
-    image: '/images/song-8.jpg',
+    image: '/images/song-8.webp',
   },
   {
     id: '9',
@@ -90,6 +90,6 @@ export const songs: Song[] = [
     artist: 'Joji',
     language: 'English',
     duration: 216,
-    image: '/images/song-10.jpg',
+    image: '/images/song-10.jpeg',
   },
 ];

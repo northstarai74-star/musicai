@@ -20,11 +20,8 @@ export default function SongCard({
 
   return (
     <div className="group flex flex-col rounded overflow-hidden bg-gradient-to-br from-pink-200 to-purple-200 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-pink-300">
-      <div className="relative overflow-hidden h-40 bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300">
-        <div className="w-full h-full flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-          🎵
-        </div>
-        <div className="absolute inset-0 bg-white/20 group-hover:bg-white/10 transition-all"></div>
+      <div className="relative overflow-hidden h-40 w-full">
+        <img src={song.image} alt="" className="w-full h-full object-cover" />
         <button
           onClick={(e) => {
             e.stopPropagation();
