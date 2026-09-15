@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "seo": "node seo/run.mjs all",
+    "seo:test": "node --test seo/test.mjs",
     "seo:audit": "node seo/audit.mjs",
     "seo:keywords": "node seo/keywords.mjs",
     "seo:sitemap": "node seo/sitemap.mjs",
