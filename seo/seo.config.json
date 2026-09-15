@@ -1,0 +1,27 @@
+{
+  "site": {
+    "name": "DesiSwagTunes",
+    "tagline": "Feel Every Beat",
+    "origin": "https://desiswagtunes.com",
+    "defaultLocale": "en-IN",
+    "twitter": "@desiswagtunes"
+  },
+  "targets": {
+    "titleLength": [30, 60],
+    "descriptionLength": [70, 160],
+    "minWordCount": 250,
+    "minScore": 80
+  },
+  "routes": [
+    { "path": "/", "page": "home", "priority": 1.0, "changefreq": "daily", "primaryKeyword": "free bollywood and punjabi music streaming" },
+    { "path": "/search", "page": "search", "priority": 0.7, "changefreq": "weekly", "primaryKeyword": "search hindi punjabi songs online" },
+    { "path": "/library", "page": "library", "priority": 0.7, "changefreq": "weekly", "primaryKeyword": "online music library hindi songs" },
+    { "path": "/likes", "page": "likes", "priority": 0.4, "changefreq": "monthly", "primaryKeyword": "my liked songs playlist" },
+    { "path": "/premium", "page": "premium", "priority": 0.8, "changefreq": "monthly", "primaryKeyword": "ad free music streaming plan india" }
+  ],
+  "competitors": ["open.spotify.com", "gaana.com", "jiosaavn.com", "wynk.in"],
+  "modifiers": {
+    "intent": ["listen", "play", "download", "stream", "free", "online", "lyrics", "mp3", "full song"],
+    "qualifier": ["hd audio", "without ads", "official", "new", "2026"]
+  }
+}

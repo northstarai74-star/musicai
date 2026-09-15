@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run seo)",
+      "Bash(npm run seo:*)",
+      "Bash(node seo/*)"
+    ]
+  }
+}

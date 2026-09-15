@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "seo": "node seo/run.mjs all",
+    "seo:audit": "node seo/audit.mjs",
+    "seo:keywords": "node seo/keywords.mjs",
+    "seo:sitemap": "node seo/sitemap.mjs",
+    "seo:schema": "node seo/schema.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
