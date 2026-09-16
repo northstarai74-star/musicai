@@ -45,12 +45,12 @@ const PERFECT_PAGE = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Stream Hindi and Punjabi Songs Free Online Today</title>
     <meta name="description" content="Stream Bollywood, Punjabi and English hits free. Trending tracks, artist collections and language playlists with no download and no signup required.">
-    <link rel="canonical" href="https://desiswagtunes.com/">
+    <link rel="canonical" href="https://musicai-1.vercel.app/">
     <link rel="icon" href="/favicon.svg">
     <meta property="og:title" content="Stream Hindi and Punjabi Songs Free">
     <meta property="og:description" content="Free music streaming.">
-    <meta property="og:image" content="https://desiswagtunes.com/og.png">
-    <meta property="og:url" content="https://desiswagtunes.com/">
+    <meta property="og:image" content="https://musicai-1.vercel.app/og.png">
+    <meta property="og:url" content="https://musicai-1.vercel.app/">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"DesiSwagTunes"}</script>
@@ -66,8 +66,8 @@ const PERFECT_PAGE = `<!doctype html>
 </html>`;
 
 const ASSETS_OK = {
-  'robots.txt': { path: 'public/robots.txt', body: 'User-agent: *\nAllow: /\nSitemap: https://desiswagtunes.com/sitemap.xml' },
-  'sitemap.xml': { path: 'public/sitemap.xml', body: '<urlset><url><loc>https://desiswagtunes.com/</loc></url></urlset>' },
+  'robots.txt': { path: 'public/robots.txt', body: 'User-agent: *\nAllow: /\nSitemap: https://musicai-1.vercel.app/sitemap.xml' },
+  'sitemap.xml': { path: 'public/sitemap.xml', body: '<urlset><url><loc>https://musicai-1.vercel.app/</loc></url></urlset>' },
 };
 
 const config = await loadConfig();
@@ -82,7 +82,7 @@ describe('html parsing', () => {
   });
 
   it('reads rel links, including multi-value rel', () => {
-    assert.equal(H.link(PERFECT_PAGE, 'canonical'), 'https://desiswagtunes.com/');
+    assert.equal(H.link(PERFECT_PAGE, 'canonical'), 'https://musicai-1.vercel.app/');
     assert.equal(H.link('<link rel="shortcut icon" href="/f.ico">', 'icon'), '/f.ico');
   });
 
@@ -111,8 +111,8 @@ describe('html parsing', () => {
   });
 
   it('classifies anchors as internal or external against the origin', () => {
-    const html = '<a href="/search">a</a><a href="https://desiswagtunes.com/x">b</a><a href="https://spotify.com">c</a><a href="#top">d</a><a href="mailto:x@y.z">e</a>';
-    const links = H.anchors(html, 'https://desiswagtunes.com');
+    const html = '<a href="/search">a</a><a href="https://musicai-1.vercel.app/x">b</a><a href="https://spotify.com">c</a><a href="#top">d</a><a href="mailto:x@y.z">e</a>';
+    const links = H.anchors(html, 'https://musicai-1.vercel.app');
     assert.equal(links.length, 3, 'fragment and mailto links are not navigation');
     assert.deepEqual(links.map((l) => l.internal), [true, true, false]);
   });
@@ -142,6 +142,38 @@ describe('audit rules', () => {
   it('fails a noindex page', () => {
     const html = PERFECT_PAGE.replace('<meta charset="UTF-8">', '<meta name="robots" content="noindex, nofollow">');
     assert.equal(check(html, 'indexable').status, 'fail');
+  });
+
+  it('fails a canonical pointing at another domain', () => {
+    const html = PERFECT_PAGE.replace(
+      'rel="canonical" href="https://musicai-1.vercel.app/"',
+      'rel="canonical" href="https://someone-elses-site.com/"',
+    );
+    const result = check(html, 'canonical-origin');
+    assert.equal(result.status, 'fail');
+    assert.equal(result.severity, 'critical');
+    assert.match(result.detail, /someone-elses-site\.com/);
+    assert.match(result.detail, /musicai-1\.vercel\.app/);
+  });
+
+  it('passes a canonical on the configured origin, and skips when there is none to judge', () => {
+    assert.equal(check(PERFECT_PAGE, 'canonical-origin').status, 'pass');
+    assert.equal(check(PERFECT_PAGE.replace(/<link rel="canonical"[^>]*>/, ''), 'canonical-origin').status, 'skip');
+    assert.equal(
+      check(PERFECT_PAGE.replace(/rel="canonical" href="[^"]*"/, 'rel="canonical" href="/"'), 'canonical-origin').status,
+      'skip',
+      'a relative canonical is the canonical rule\'s finding, not this one',
+    );
+  });
+
+  it('catches a wrong-host canonical that still has the right path', () => {
+    // canonical-self compares paths only, so this is the gap canonical-origin covers.
+    const html = PERFECT_PAGE.replace(
+      'rel="canonical" href="https://musicai-1.vercel.app/"',
+      'rel="canonical" href="https://desiswagtunes.com/"',
+    );
+    assert.equal(runChecks({ html, config, assets: ASSETS_OK, route: '/' }).checks.find((c) => c.id === 'canonical-self').status, 'pass');
+    assert.equal(check(html, 'canonical-origin').status, 'fail');
   });
 
   it('fails an unrendered SPA shell', () => {
@@ -196,7 +228,7 @@ describe('audit rules', () => {
     assert.equal(ctx(PERFECT_PAGE, '/').status, 'pass');
     assert.equal(ctx(PERFECT_PAGE, '/song/tum-hi-ho-arijit-singh').status, 'fail');
     assert.equal(
-      ctx(page('<link rel="canonical" href="https://desiswagtunes.com/song/x/">'), '/song/x').status,
+      ctx(page('<link rel="canonical" href="https://musicai-1.vercel.app/song/x/">'), '/song/x').status,
       'pass',
       'a trailing slash is the same URL',
     );
@@ -222,7 +254,7 @@ describe('audit rules', () => {
     assert.equal(routeOf('index.html', 'file'), '/');
     assert.equal(routeOf('public/song/tum-hi-ho-arijit-singh/index.html', 'file'), '/song/tum-hi-ho-arijit-singh');
     assert.equal(routeOf('dist/library/index.html', 'file'), '/library');
-    assert.equal(routeOf('https://desiswagtunes.com/artist/joji', 'url'), '/artist/joji');
+    assert.equal(routeOf('https://musicai-1.vercel.app/artist/joji', 'url'), '/artist/joji');
     assert.equal(routeOf('/tmp/x/page.html', 'file'), null, 'a loose html file has no route');
   });
 

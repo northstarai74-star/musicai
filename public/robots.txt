@@ -12,4 +12,4 @@ Allow: /
 User-agent: PerplexityBot
 Allow: /
 
-Sitemap: https://desiswagtunes.com/sitemap.xml
+Sitemap: https://musicai-1.vercel.app/sitemap.xml

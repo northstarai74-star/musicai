@@ -113,6 +113,34 @@ const RULES = [
     },
   },
   {
+    id: 'canonical-origin',
+    title: 'Canonical points at the site\'s own domain',
+    severity: 'critical',
+    run: ({ html, config }) => {
+      const href = H.link(html, 'canonical');
+      if (!href) return { status: 'skip', detail: 'no canonical to compare (see the canonical rule)' };
+      if (!/^https?:\/\//i.test(href)) return { status: 'skip', detail: 'relative canonical (see the canonical rule)' };
+
+      let canonicalHost;
+      let expectedHost;
+      try {
+        canonicalHost = new URL(href).host;
+        expectedHost = new URL(config.site.origin).host;
+      } catch {
+        return { status: 'warn', detail: `unparseable canonical "${href}"`, fix: 'Use an absolute URL.' };
+      }
+
+      if (canonicalHost !== expectedHost) {
+        return {
+          status: 'fail',
+          detail: `canonical host is ${canonicalHost}, but the site is served from ${expectedHost}`,
+          fix: `A canonical on another domain tells Google the real page lives there, and can drop this site from the index entirely. Point it at ${expectedHost}, or correct "site.origin" in seo.config.json if the domain changed.`,
+        };
+      }
+      return { status: 'pass', detail: canonicalHost };
+    },
+  },
+  {
     id: 'playback-claims',
     title: 'Playback claims match the product',
     severity: 'low',
