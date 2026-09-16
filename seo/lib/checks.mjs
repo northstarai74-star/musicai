@@ -88,6 +88,59 @@ const RULES = [
     },
   },
   {
+    id: 'canonical-self',
+    title: 'Canonical points at this route',
+    severity: 'medium',
+    run: ({ html, route }) => {
+      if (!route) return { status: 'skip', detail: 'route unknown for this target' };
+      const href = H.link(html, 'canonical');
+      if (!href) return { status: 'skip', detail: 'no canonical to compare (see the canonical rule)' };
+      const normalise = (p) => (p.length > 1 ? p.replace(/\/+$/, '') : p);
+      let canonicalPath;
+      try {
+        canonicalPath = normalise(new URL(href, 'https://example.invalid').pathname);
+      } catch {
+        return { status: 'warn', detail: `unparseable canonical "${href}"`, fix: 'Use an absolute URL.' };
+      }
+      if (canonicalPath !== normalise(route)) {
+        return {
+          status: 'fail',
+          detail: `page is ${route} but canonical says ${canonicalPath}`,
+          fix: 'Every page needs a self-referencing canonical — a copied one hands its ranking to another URL.',
+        };
+      }
+      return { status: 'pass', detail: `self-referencing (${canonicalPath})` };
+    },
+  },
+  {
+    id: 'playback-claims',
+    title: 'Playback claims match the product',
+    severity: 'low',
+    run: ({ html }) => {
+      const text = H.stripTags(html);
+      // "no download needed" is a disclaimer, not a promise — don't flag it.
+      const promises = [
+        /(?<!\bno\s)\bdownloads?\b/i,
+        /\bmp3\b/i,
+        /\bfull song\b/i,
+        /\boffline\b/i,
+      ]
+        .filter((re) => re.test(text))
+        .map((re) => re.source);
+      if (!promises.length) return { status: 'pass', detail: 'no download or offline-playback promises' };
+
+      const hasAudio = /<audio\b/i.test(html) || H.jsonLd(html).some((b) =>
+        JSON.stringify(b).includes('"audio"') || JSON.stringify(b).includes('AudioObject'),
+      );
+      if (hasAudio) return { status: 'pass', detail: 'playback claims backed by an audio source on the page' };
+      return {
+        status: 'warn',
+        detail: `promises ${promises.join(', ')} but the page ships no audio source`,
+        fix: 'Only promise downloads or offline playback where licensed audio actually exists — unmet promises are a trust and policy risk.',
+      };
+    },
+  },
+  {
     id: 'h1',
     title: 'Single descriptive H1',
     severity: 'high',

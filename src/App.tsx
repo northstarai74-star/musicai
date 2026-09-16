@@ -15,15 +15,30 @@ import { songs } from './data/songs';
 
 type PageType = 'home' | 'search' | 'likes' | 'library' | 'premium';
 
+/**
+ * The pre-rendered catalogue pages in public/ link back here as `/?song=<id>`
+ * (see seo/lib/render.mjs). Resolving that parameter is what makes those pages
+ * a real entry point into the app instead of a dead end.
+ */
+function songFromUrl(): Song | null {
+  if (typeof window === 'undefined') return null;
+  const id = new URLSearchParams(window.location.search).get('song');
+  if (!id) return null;
+  return songs.find((s) => s.id === id) ?? null;
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('home');
-  const [currentSong, setCurrentSong] = useState<Song | null>(null);
+  const [currentSong, setCurrentSong] = useState<Song | null>(songFromUrl);
   const [isPlaying, setIsPlaying] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentQueue, setCurrentQueue] = useState<Song[]>(songs);
-  const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
+  const [currentQueueIndex, setCurrentQueueIndex] = useState(() => {
+    const deepLinked = songFromUrl();
+    return deepLinked ? songs.findIndex((s) => s.id === deepLinked.id) : 0;
+  });
   const [showFullScreenPlayer, setShowFullScreenPlayer] = useState(false);
 
   const toggleFavorite = (songId: string) => {

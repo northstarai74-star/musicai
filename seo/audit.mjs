@@ -3,13 +3,14 @@
  * Technical SEO audit.
  *
  *   node seo/audit.mjs                     # audits index.html (or dist/ when built)
+ *   node seo/audit.mjs --all               # index.html + every pre-rendered page
  *   node seo/audit.mjs dist/index.html
  *   node seo/audit.mjs https://example.com --json
  *   node seo/audit.mjs --out seo/reports/audit.md
  *
  * Exit code is 1 when a critical or high-severity check fails, so it can gate CI.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { runChecks } from './lib/checks.mjs';
 import { loadConfig, loadDocument, ROOT } from './lib/site.mjs';
@@ -46,6 +47,42 @@ async function collectAssets(target) {
     'robots.txt': await readAsset(dirs, 'robots.txt'),
     'sitemap.xml': await readAsset(dirs, 'sitemap.xml'),
   };
+}
+
+/**
+ * The route a target represents, so rules can check the page against its own
+ * URL. `index.html` is `/`; `public/song/x/index.html` is `/song/x`.
+ */
+export function routeOf(source, kind) {
+  if (kind === 'url') {
+    try {
+      return new URL(source).pathname;
+    } catch {
+      return null;
+    }
+  }
+  const parts = source.split('/').filter(Boolean);
+  if (parts[parts.length - 1] !== 'index.html') return null; // a bare .html file has no route
+  const trimmed = parts.slice(0, -1);
+  if (trimmed[0] === 'public' || trimmed[0] === 'dist') trimmed.shift();
+  return `/${trimmed.join('/')}`;
+}
+
+/** index.html plus every pre-rendered page under public/ (or dist/). */
+export async function prerenderedTargets() {
+  const targets = [];
+  const built = await readFile(path.join(ROOT, 'dist/index.html'), 'utf8').catch(() => null);
+  const base = built ? 'dist' : 'public';
+  targets.push(built ? 'dist/index.html' : 'index.html');
+
+  const walk = async (dir) => {
+    for (const entry of await readdir(path.join(ROOT, dir), { withFileTypes: true }).catch(() => [])) {
+      if (entry.isDirectory()) await walk(`${dir}/${entry.name}`);
+      else if (entry.name === 'index.html') targets.push(`${dir}/${entry.name}`);
+    }
+  };
+  for (const dir of ['library', 'song', 'artist', 'language']) await walk(`${base}/${dir}`);
+  return targets;
 }
 
 function renderMarkdown(reports, config) {
@@ -93,7 +130,12 @@ export async function audit(targets, { assets } = {}) {
   const reports = [];
   for (const target of targets) {
     const doc = await loadDocument(target);
-    const context = { html: doc.html, config, assets: assets ?? (await collectAssets(target)) };
+    const context = {
+      html: doc.html,
+      config,
+      route: routeOf(doc.source, doc.kind),
+      assets: assets ?? (await collectAssets(target)),
+    };
     reports.push({ source: doc.source, kind: doc.kind, ...runChecks(context) });
   }
   return { config, reports };
@@ -111,7 +153,12 @@ async function main(argv) {
   const skip = outIndex >= 0 ? outIndex + 1 : -1; // --out consumes the next argv slot
   const targets = argv.filter((a, i) => !a.startsWith('--') && i !== skip);
 
-  const { config, reports } = await audit(targets.length ? targets : await defaultTargets());
+  const resolved = targets.length
+    ? targets
+    : argv.includes('--all')
+      ? await prerenderedTargets()
+      : await defaultTargets();
+  const { config, reports } = await audit(resolved);
   const markdown = renderMarkdown(reports, config);
 
   if (asJson) console.log(JSON.stringify({ generatedAt: new Date().toISOString(), reports }, null, 2));

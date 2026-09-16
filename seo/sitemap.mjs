@@ -2,39 +2,80 @@
 /**
  * Generates public/sitemap.xml and public/robots.txt from seo.config.json.
  *
- *   node seo/sitemap.mjs                    # the routes the app actually serves
- *   node seo/sitemap.mjs --include-catalog  # adds /song/* and /artist/* URLs
+ *   node seo/sitemap.mjs                    # every URL that resolves to a page
+ *   node seo/sitemap.mjs --include-catalog  # force every /song/* and /artist/* URL
  *   node seo/sitemap.mjs --dry-run
  *
- * Catalogue URLs stay opt-in: listing routes the SPA does not serve yet would
- * feed Search Console a wall of soft 404s.
+ * A URL earns its place in the sitemap by resolving to a real page on disk:
+ * index.html for `/`, or a pre-rendered public/<route>/index.html written by
+ * `npm run seo:prerender`. Routes that are only SPA state (/search, /likes,
+ * /premium — there is no router yet) are left out rather than fed to Search
+ * Console as soft 404s. --include-catalog overrides the check for the case
+ * where the server renders those routes itself.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { artistPath, artistsOf, loadCatalog, loadConfig, ROOT, songPath } from './lib/site.mjs';
+import { artistPath, artistsOf, loadCatalog, loadConfig, ROOT, slug, songPath } from './lib/site.mjs';
+
+/** True when a route resolves to a page on disk (pre-rendered, built or root). */
+export async function routeResolves(routePath, root = ROOT) {
+  const rel = routePath.replace(/^\/+|\/+$/g, '');
+  const candidates = rel
+    ? [path.join(root, 'dist', rel, 'index.html'), path.join(root, 'public', rel, 'index.html')]
+    : [path.join(root, 'dist/index.html'), path.join(root, 'index.html')];
+  for (const file of candidates) {
+    if (await stat(file).then((s) => s.isFile(), () => false)) return true;
+  }
+  return false;
+}
 
 const xmlEscape = (value) =>
   String(value).replace(/[<>&'"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c]);
 
-export async function buildSitemap({ includeCatalog = false } = {}) {
+export async function buildSitemap({ includeCatalog = false, root = ROOT } = {}) {
   const config = await loadConfig();
+  const songs = await loadCatalog();
   const { origin } = config.site;
   const today = new Date().toISOString().slice(0, 10);
 
-  const entries = config.routes.map((route) => ({
-    loc: origin + route.path,
+  const candidates = config.routes.map((route) => ({
+    path: route.path,
     priority: route.priority,
     changefreq: route.changefreq,
+    always: false,
   }));
 
-  if (includeCatalog) {
-    const songs = await loadCatalog();
-    for (const song of songs) {
-      entries.push({ loc: origin + songPath(song), priority: song.trending ? 0.8 : 0.6, changefreq: 'weekly' });
+  for (const song of songs) {
+    candidates.push({
+      path: songPath(song),
+      priority: song.trending ? 0.8 : 0.6,
+      changefreq: 'weekly',
+      always: includeCatalog,
+    });
+  }
+  for (const artist of artistsOf(songs).keys()) {
+    candidates.push({ path: artistPath(artist), priority: 0.6, changefreq: 'weekly', always: includeCatalog });
+  }
+  for (const language of new Set(songs.map((s) => s.language))) {
+    candidates.push({
+      path: `/language/${slug(language)}`,
+      priority: 0.7,
+      changefreq: 'weekly',
+      always: includeCatalog,
+    });
+  }
+
+  const entries = [];
+  const seen = new Set();
+  const skipped = [];
+  for (const candidate of candidates) {
+    if (seen.has(candidate.path)) continue;
+    seen.add(candidate.path);
+    if (!candidate.always && !(await routeResolves(candidate.path, root))) {
+      skipped.push(candidate.path);
+      continue;
     }
-    for (const artist of artistsOf(songs).keys()) {
-      entries.push({ loc: origin + artistPath(artist), priority: 0.6, changefreq: 'weekly' });
-    }
+    entries.push({ loc: origin + candidate.path, priority: candidate.priority, changefreq: candidate.changefreq });
   }
 
   const xml = [
@@ -73,11 +114,11 @@ export async function buildSitemap({ includeCatalog = false } = {}) {
     '',
   ].join('\n');
 
-  return { xml, robots, entries };
+  return { xml, robots, entries, skipped };
 }
 
 async function main(argv) {
-  const { xml, robots, entries } = await buildSitemap({ includeCatalog: argv.includes('--include-catalog') });
+  const { xml, robots, entries, skipped } = await buildSitemap({ includeCatalog: argv.includes('--include-catalog') });
 
   if (argv.includes('--dry-run')) {
     console.log(xml);
@@ -90,6 +131,9 @@ async function main(argv) {
   await writeFile(path.join(ROOT, 'public/robots.txt'), robots);
   console.log(`public/sitemap.xml written (${entries.length} URLs)`);
   console.log('public/robots.txt written');
+  if (skipped.length) {
+    console.log(`left out — no page on disk yet: ${skipped.join(', ')}`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

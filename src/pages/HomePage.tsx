@@ -1,9 +1,11 @@
 import Hero from '../components/Hero';
+import BrowseCatalogue from '../components/BrowseCatalogue';
 import FeaturedSongs from '../components/FeaturedSongs';
 import LanguageCategories from '../components/LanguageCategories';
 import TrendingNow from '../components/TrendingNow';
 import { Song } from '../types';
 import { songs } from '../data/songs';
+import { songPath } from '../lib/routes';
 
 interface HomePageProps {
   onPlay: (song: Song) => void;
@@ -69,6 +71,13 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
                   <p className="text-xs text-purple-600 truncate mt-1">{song.artist}</p>
                   <div className="mt-auto pt-3 flex items-center justify-between text-xs">
                     <span className="text-purple-600 font-medium">{Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}</span>
+                    <a
+                      href={songPath(song)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-purple-700 underline hover:text-purple-900"
+                      title={`${song.title} details`}>
+                      Details
+                    </a>
                   </div>
                 </div>
               </div>
@@ -92,7 +101,15 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
                 <span className="mr-4 font-black text-lg text-purple-700 w-8">#{index + 1}</span>
                 <div className="flex-1">
                   <h4 className="font-semibold text-purple-900 group-hover:text-purple-700">{song.title}</h4>
-                  <p className="text-sm text-purple-600">{song.artist}</p>
+                  <p className="text-sm text-purple-600">
+                    {song.artist} ·{' '}
+                    <a
+                      href={songPath(song)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="underline hover:text-purple-900">
+                      Details
+                    </a>
+                  </p>
                 </div>
                 <div className="flex items-center gap-4 ml-4">
                   <span className="text-sm text-purple-700 font-medium">{Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}</span>
@@ -110,6 +127,8 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
           </div>
         </div>
       </div>
+
+      <BrowseCatalogue />
     </div>
   );
 }

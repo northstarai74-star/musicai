@@ -17,7 +17,10 @@ import { runChecks, RULES } from './lib/checks.mjs';
 import * as H from './lib/html.mjs';
 import { artistsOf, formatDuration, loadCatalog, loadConfig, loadDocument, ROOT, slug, songPath } from './lib/site.mjs';
 import { buildSchema } from './schema.mjs';
-import { buildSitemap } from './sitemap.mjs';
+import { buildSitemap, routeResolves } from './sitemap.mjs';
+import { buildPages, checkFresh, injectHome, MANAGED_DIRS } from './prerender.mjs';
+import { songPage } from './lib/render.mjs';
+import { routeOf } from './audit.mjs';
 
 const execFileAsync = promisify(execFile);
 const cli = (script, args = []) =>
@@ -187,6 +190,42 @@ describe('audit rules', () => {
     assert.match(result.fix, /click handlers/i);
   });
 
+  it('fails a canonical that points at another route', () => {
+    const page = (canonical) => PERFECT_PAGE.replace(/<link rel="canonical"[^>]*>/, canonical);
+    const ctx = (html, route) => runChecks({ html, config, assets: ASSETS_OK, route }).checks.find((c) => c.id === 'canonical-self');
+    assert.equal(ctx(PERFECT_PAGE, '/').status, 'pass');
+    assert.equal(ctx(PERFECT_PAGE, '/song/tum-hi-ho-arijit-singh').status, 'fail');
+    assert.equal(
+      ctx(page('<link rel="canonical" href="https://desiswagtunes.com/song/x/">'), '/song/x').status,
+      'pass',
+      'a trailing slash is the same URL',
+    );
+    assert.equal(ctx(PERFECT_PAGE, undefined).status, 'skip', 'no route means nothing to compare');
+  });
+
+  it('warns when a page promises downloads the catalogue cannot serve', () => {
+    const promise = '<p>Free mp3 download of the full song</p>';
+    assert.equal(check(promise, 'playback-claims').status, 'warn');
+    assert.equal(
+      check('<p>Stream free with no download and no signup.</p>', 'playback-claims').status,
+      'pass',
+      '"no download" is a disclaimer, not a promise',
+    );
+    assert.equal(
+      check(`${promise}<audio src="/audio/song.mp3"></audio>`, 'playback-claims').status,
+      'pass',
+      'the claim is fine once there is audio to back it',
+    );
+  });
+
+  it('maps a file or URL target back to the route it represents', () => {
+    assert.equal(routeOf('index.html', 'file'), '/');
+    assert.equal(routeOf('public/song/tum-hi-ho-arijit-singh/index.html', 'file'), '/song/tum-hi-ho-arijit-singh');
+    assert.equal(routeOf('dist/library/index.html', 'file'), '/library');
+    assert.equal(routeOf('https://desiswagtunes.com/artist/joji', 'url'), '/artist/joji');
+    assert.equal(routeOf('/tmp/x/page.html', 'file'), null, 'a loose html file has no route');
+  });
+
   it('fails robots.txt that disallows the whole site', () => {
     const assets = { ...ASSETS_OK, 'robots.txt': { path: 'public/robots.txt', body: 'User-agent: *\nDisallow: /\nSitemap: https://x/sitemap.xml' } };
     assert.equal(check(PERFECT_PAGE, 'robots-txt', assets).status, 'fail');
@@ -273,18 +312,35 @@ describe('site helpers', () => {
 });
 
 describe('sitemap and robots', () => {
-  it('lists only live routes by default', async () => {
-    const { xml, entries } = await buildSitemap();
-    assert.equal(entries.length, config.routes.length);
-    assert.ok(!xml.includes('/song/'), 'catalogue URLs must stay opt-in');
+  it('lists only URLs that resolve to a page on disk', async () => {
+    const { xml, entries, skipped } = await buildSitemap();
     assert.match(xml, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+    for (const entry of entries) {
+      const route = entry.loc.slice(config.site.origin.length);
+      assert.ok(await routeResolves(route), `${route} is in the sitemap but has no page`);
+    }
+    // /search, /likes and /premium are SPA state with no router behind them.
+    for (const route of skipped) assert.equal(await routeResolves(route), false);
+    assert.ok(skipped.includes('/search'), 'unrouted app state must stay out of the sitemap');
   });
 
-  it('adds song and artist URLs with --include-catalog', async () => {
+  it('includes the pre-rendered catalogue pages', async () => {
     const songs = await loadCatalog();
-    const { entries } = await buildSitemap({ includeCatalog: true });
-    assert.equal(entries.length, config.routes.length + songs.length + artistsOf(songs).size);
-    assert.ok(entries.some((e) => e.loc.endsWith(songPath(songs[0]))));
+    const { entries } = await buildSitemap();
+    const locs = entries.map((e) => e.loc);
+    assert.ok(locs.includes(`${config.site.origin}${songPath(songs[0])}`), 'song pages exist and belong in it');
+    assert.ok(locs.includes(`${config.site.origin}/library`));
+    assert.ok(locs.some((l) => l.includes('/artist/')) && locs.some((l) => l.includes('/language/')));
+  });
+
+  it('forces every catalogue URL with --include-catalog, even without a page', async () => {
+    const songs = await loadCatalog();
+    const empty = await tmp(); // nothing on disk: only the forced URLs survive
+    const { entries } = await buildSitemap({ includeCatalog: true, root: empty });
+    const locs = entries.map((e) => e.loc);
+    assert.equal(locs.length, songs.length + artistsOf(songs).size + new Set(songs.map((s) => s.language)).size);
+    assert.ok(locs.some((l) => l.endsWith(songPath(songs[0]))));
+    assert.ok(!locs.includes(`${config.site.origin}/search`), 'unrouted app state is never forced in');
   });
 
   it('emits absolute, deduplicated, well-formed URLs', async () => {
@@ -336,6 +392,181 @@ describe('structured data', () => {
     const after = await readFile(path.join(ROOT, 'index.html'), 'utf8');
     assert.equal((after.match(/seo:schema:start/g) || []).length, 1);
     assert.equal(before, after, 'a no-op re-run must not change the file');
+  });
+});
+
+const built = await buildPages();
+const bodies = new Map(built.pages.map((p) => [p.path, p.html]));
+
+describe('pre-render', () => {
+
+  it('covers every catalogue entity exactly once', async () => {
+    const songs = await loadCatalog();
+    const languages = new Set(songs.map((s) => s.language));
+    const expected = songs.length + artistsOf(songs).size + languages.size + 1; // + /library
+    assert.equal(built.pages.length, expected);
+    assert.equal(new Set(built.pages.map((p) => p.path)).size, expected, 'duplicate route generated');
+    for (const song of songs) assert.ok(bodies.has(songPath(song)), `no page for ${song.title}`);
+  });
+
+  it('writes each page where the URL says it lives', () => {
+    for (const page of built.pages) {
+      assert.equal(page.file, `public${page.path}/index.html`);
+    }
+  });
+
+  it('gives every page a self-referencing canonical and its own title', () => {
+    const titles = new Set();
+    const descriptions = new Set();
+    for (const page of built.pages) {
+      assert.match(page.html, new RegExp(`<link rel="canonical" href="${config.site.origin}${page.path}">`));
+      assert.ok(!titles.has(page.title), `duplicate title: ${page.title}`);
+      assert.ok(!descriptions.has(page.description), `duplicate description: ${page.description}`);
+      titles.add(page.title);
+      descriptions.add(page.description);
+    }
+  });
+
+  it('keeps titles and descriptions inside the configured limits', () => {
+    const [minT, maxT] = config.targets.titleLength;
+    const [minD, maxD] = config.targets.descriptionLength;
+    for (const page of built.pages) {
+      assert.ok(page.title.length >= minT && page.title.length <= maxT, `title ${page.title.length}: ${page.title}`);
+      assert.ok(
+        page.description.length >= minD && page.description.length <= maxD,
+        `description ${page.description.length}: ${page.description}`,
+      );
+    }
+  });
+
+  it('escapes catalogue text instead of injecting it raw', () => {
+    const hostile = {
+      id: '99',
+      title: '<script>alert(1)</script> & "quotes"',
+      artist: 'M & M',
+      language: 'Hindi',
+      duration: 100,
+    };
+    const page = songPage({ song: hostile, songs: [hostile], config });
+    assert.ok(!/<script>alert/.test(page.body), 'song titles must not open a script tag');
+    assert.ok(page.body.includes('&lt;script&gt;'), 'the title is escaped, not dropped');
+    assert.ok(!/content="[^"]*"quotes"/.test(page.html), 'quotes must not break out of an attribute');
+  });
+
+  it('ships no executable script in the pre-rendered pages', () => {
+    const tags = built.pages.flatMap((p) => p.html.match(/<script\b[^>]*>/gi) ?? []);
+    assert.ok(tags.length, 'every page carries JSON-LD');
+    assert.ok(
+      tags.every((tag) => /application\/ld\+json/i.test(tag)),
+      'static catalogue pages carry no app bundle — otherwise React would replace the content',
+    );
+  });
+
+  it('renders images with alt text and intrinsic size', () => {
+    for (const page of built.pages) {
+      for (const image of H.images(page.html)) {
+        assert.ok(image.alt && image.alt.trim(), `missing alt on ${image.src} (${page.path})`);
+        assert.ok(image.width && image.height, `missing dimensions on ${image.src} (${page.path})`);
+      }
+    }
+  });
+
+  it('links only to pages that exist', async () => {
+    const songs = await loadCatalog();
+    const ids = new Set(songs.map((s) => String(s.id)));
+    const known = new Set([...bodies.keys(), '/']);
+    for (const [where, html] of [...bodies, ['/', built.home]]) {
+      for (const link of H.anchors(html, config.site.origin).filter((a) => a.internal)) {
+        const url = new URL(link.href, config.site.origin);
+        if (url.searchParams.has('song')) {
+          assert.ok(ids.has(url.searchParams.get('song')), `deep link to unknown song on ${where}`);
+        }
+        assert.ok(known.has(url.pathname), `${where} links to ${url.pathname}, which is never generated`);
+      }
+    }
+  });
+
+  it('claims nothing the catalogue cannot back', () => {
+    for (const page of built.pages) {
+      const text = H.stripTags(page.html).toLowerCase();
+      for (const promise of ['download', 'mp3', 'offline', 'full song']) {
+        assert.ok(!text.includes(promise), `${page.path} promises "${promise}" with no audio in the catalogue`);
+      }
+      const graph = H.jsonLd(page.html)[0]['@graph'];
+      for (const node of graph.filter((n) => n['@type'] === 'MusicRecording')) {
+        for (const forbidden of ['audio', 'offers', 'aggregateRating', 'review']) {
+          assert.equal(node[forbidden], undefined, `MusicRecording must not claim ${forbidden}`);
+        }
+      }
+    }
+  });
+
+  it('emits parseable JSON-LD whose URLs resolve to generated pages', () => {
+    for (const page of built.pages) {
+      const blocks = H.jsonLd(page.html);
+      assert.equal(blocks.length, 1);
+      assert.ok(!blocks[0].error, `invalid JSON-LD on ${page.path}`);
+      const crumbs = blocks[0]['@graph'].find((n) => n['@type'] === 'BreadcrumbList');
+      assert.ok(crumbs, `${page.path} has no BreadcrumbList`);
+      for (const item of crumbs.itemListElement) {
+        const url = new URL(item.item);
+        assert.ok(bodies.has(url.pathname) || url.pathname === '/', `breadcrumb to ${url.pathname}`);
+      }
+    }
+  });
+
+  it('injects the home body into #root, idempotently', () => {
+    const shell = '<html><body><div id="root"></div><script src="/src/main.tsx"></script></body></html>';
+    const once = injectHome(shell, built.home);
+    assert.equal(H.hasEmptyRoot(once), false);
+    assert.ok(once.includes('/src/main.tsx'), 'the app bundle must survive injection');
+    assert.equal(injectHome(once, built.home), once, 'a second run must be a no-op');
+    assert.equal((once.match(/seo:prerender:start/g) || []).length, 1);
+  });
+
+  it('mirrors the app: no crawler-only links in the home body', async () => {
+    const [browse, footer] = await Promise.all([
+      readFile(path.join(ROOT, 'src/components/BrowseCatalogue.tsx'), 'utf8'),
+      readFile(path.join(ROOT, 'src/components/Footer.tsx'), 'utf8'),
+    ]);
+    const react = `${browse}\n${footer}`;
+    // The app builds its hrefs from the same helpers, so matching helpers means
+    // matching link sets. Literal paths (like /library) have to appear verbatim.
+    for (const helper of ['languagePath', 'artistPath']) {
+      assert.ok(react.includes(helper), `the app must render ${helper}() links too`);
+    }
+    assert.ok(react.includes('"/library"'), 'the app must link to the library page');
+    assert.ok(
+      (await readFile(path.join(ROOT, 'src/pages/HomePage.tsx'), 'utf8')).includes('songPath(song)'),
+      'song cards must expose a crawlable link to the song page',
+    );
+  });
+
+  it('keeps the app and the toolkit slugging URLs the same way', async () => {
+    const [ts, mjs] = await Promise.all([
+      readFile(path.join(ROOT, 'src/lib/routes.ts'), 'utf8'),
+      readFile(path.join(ROOT, 'seo/lib/site.mjs'), 'utf8'),
+    ]);
+    const steps = [".toLowerCase()", ".normalize('NFKD')", "replace(/[^\\w\\s-]/g, '')", "replace(/[\\s_-]+/g, '-')"];
+    for (const step of steps) {
+      assert.ok(ts.includes(step), `src/lib/routes.ts drifted: missing ${step}`);
+      assert.ok(mjs.includes(step), `seo/lib/site.mjs drifted: missing ${step}`);
+    }
+    assert.ok(ts.includes('`/song/${slug(song.title)}-${slug(song.artist)}`'));
+    assert.ok(ts.includes('`/artist/${slug(artist)}`'));
+  });
+
+  it('reports stale output instead of silently serving it', async () => {
+    const stale = await checkFresh(built);
+    assert.deepEqual(stale, [], 'run `npm run seo:prerender` — the committed pages are out of date');
+    const wrong = await checkFresh({ pages: built.pages, home: '<p>something else</p>' });
+    assert.ok(wrong.includes('index.html'), 'a changed home body must be reported as stale');
+  });
+
+  it('owns only the directories it generates', () => {
+    for (const page of built.pages) {
+      assert.ok(MANAGED_DIRS.includes(page.path.split('/')[1]), `${page.path} is outside the managed dirs`);
+    }
   });
 });
 
@@ -462,10 +693,21 @@ describe('audit of the real index.html', () => {
     assert.equal(reports[0].checks.length, RULES.length);
   });
 
-  it('still names the unrendered SPA as the top blocker', async () => {
+  it('serves crawlable copy from #root now that the home page is pre-rendered', async () => {
     const { reports } = await audit(['index.html']);
     const blocker = reports[0].checks.find((c) => c.id === 'crawlable-content');
-    assert.equal(blocker.status, 'fail', 'if this passes, the SPA got pre-rendered — update the agent playbook');
+    assert.equal(
+      blocker.status,
+      'pass',
+      'index.html must keep the pre-rendered home body — re-run `npm run seo:prerender`',
+    );
+    assert.equal(H.hasEmptyRoot(await readFile(path.join(ROOT, 'index.html'), 'utf8')), false);
+  });
+
+  it('keeps real internal links in the shell for crawlers and visitors alike', async () => {
+    const { reports } = await audit(['index.html']);
+    const links = reports[0].checks.find((c) => c.id === 'internal-links');
+    assert.equal(links.status, 'pass');
   });
 });
 
