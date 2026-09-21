@@ -17,6 +17,7 @@ export function useAudioPlayer({ song, isPlaying, onEnded }: UseAudioPlayerOptio
   const engineRef = useRef<AudioEngine | null>(null);
   const endedRef = useRef(onEnded);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(song?.duration || 180);
   const [volume, setVolumeState] = useState(70);
 
   endedRef.current = onEnded;
@@ -33,6 +34,7 @@ export function useAudioPlayer({ song, isPlaying, onEnded }: UseAudioPlayerOptio
         setCurrentTime(0);
         endedRef.current();
       },
+      onDuration: (seconds) => setDuration(seconds),
     });
     return () => engine.dispose();
   }, []);
@@ -44,6 +46,7 @@ export function useAudioPlayer({ song, isPlaying, onEnded }: UseAudioPlayerOptio
     engine.load(song);
     engine.setVolume(volume / 100);
     setCurrentTime(0);
+    setDuration(song.duration || 180);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [song?.id]);
 
@@ -69,8 +72,6 @@ export function useAudioPlayer({ song, isPlaying, onEnded }: UseAudioPlayerOptio
   const setVolume = useCallback((next: number) => {
     setVolumeState(Math.max(0, Math.min(100, next)));
   }, []);
-
-  const duration = song?.duration || 180;
 
   return { currentTime, duration, volume, setVolume, seek };
 }

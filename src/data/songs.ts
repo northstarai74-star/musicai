@@ -1,18 +1,74 @@
 import { Song } from '../types';
 
-// Tracks play through the Web Audio synthesiser in AudioEngine, which stands in
-// for the recording. To play an actual file instead, drop it in public/audio/
-// and add `audioUrl: '/audio/<file>.mp3'` to that song — the engine switches to
-// an <audio> element and nothing else needs to change.
+// A song with an `audioUrl` plays that file. Titles, artists and durations for
+// the uploaded tracks below were read from the files themselves; "Daydream!"
+// carried no tags, so its title is a placeholder — rename it here and in
+// public/audio/ to change it.
+//
+// The rest of the catalogue has no file, so AudioEngine synthesises a stand-in
+// instrumental for it. Drop a file in public/audio/ and add its `audioUrl` to
+// switch any of them to real playback.
 
 export const songs: Song[] = [
+  {
+    id: '11',
+    title: 'Silent Love!',
+    artist: 'orangebass9948',
+    language: 'English',
+    duration: 238,
+    featured: true,
+    trending: true,
+    image: '/images/silent-love.svg',
+    audioUrl: '/audio/silent-love.mp3',
+  },
+  {
+    id: '12',
+    title: 'Fairy Tale!',
+    artist: 'orangebass9948',
+    language: 'English',
+    duration: 302,
+    featured: true,
+    trending: true,
+    image: '/images/fairy-tale.svg',
+    audioUrl: '/audio/fairy-tale.mp3',
+  },
+  {
+    id: '13',
+    title: "I'm Lucky!",
+    artist: 'orangebass9948',
+    language: 'English',
+    duration: 263,
+    featured: true,
+    trending: true,
+    image: '/images/im-lucky.svg',
+    audioUrl: '/audio/im-lucky.mp3',
+  },
+  {
+    id: '14',
+    title: 'Dildenatads (Cover)',
+    artist: 'orangebass9948',
+    language: 'English',
+    duration: 176,
+    featured: true,
+    image: '/images/dildenatads-cover.svg',
+    audioUrl: '/audio/dildenatads-cover.mp3',
+  },
+  {
+    id: '15',
+    title: 'Daydream!',
+    artist: 'orangebass9948',
+    language: 'English',
+    duration: 213,
+    featured: true,
+    image: '/images/daydream.svg',
+    audioUrl: '/audio/daydream.m4a',
+  },
   {
     id: '1',
     title: 'Tera Ban Jaunga',
     artist: 'Akhil Sachdeva & Tulsi Kumar',
     language: 'Hindi',
     duration: 213,
-    featured: true,
     image: '/images/song-1.avif',
   },
   {
@@ -21,7 +77,6 @@ export const songs: Song[] = [
     artist: 'Arijit Singh',
     language: 'Hindi',
     duration: 242,
-    featured: true,
     trending: true,
     image: '/images/song-2.jpg',
   },
@@ -31,7 +86,6 @@ export const songs: Song[] = [
     artist: 'Arijit Singh',
     language: 'Hindi',
     duration: 203,
-    featured: true,
     trending: true,
     image: '/images/song-3.webp',
   },
@@ -41,7 +95,6 @@ export const songs: Song[] = [
     artist: 'Arijit Singh & Kamranzzaman',
     language: 'Hindi',
     duration: 197,
-    featured: true,
     image: '/images/song-4.jpg',
   },
   {
@@ -50,7 +103,6 @@ export const songs: Song[] = [
     artist: 'Ed Sheeran',
     language: 'English',
     duration: 234,
-    featured: true,
     trending: true,
     image: '/images/song-5.jpg',
   },

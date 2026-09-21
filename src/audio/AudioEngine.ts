@@ -16,6 +16,7 @@ import { Song } from '../types';
 type Listeners = {
   onTime?: (seconds: number) => void;
   onEnded?: () => void;
+  onDuration?: (seconds: number) => void;
 };
 
 const BEAT_LOOKAHEAD = 0.25; // seconds of notes scheduled ahead of the clock
@@ -100,6 +101,27 @@ export class AudioEngine {
       element.addEventListener('timeupdate', () => {
         this.listeners.onTime?.(element.currentTime);
       });
+      // The file's real length wins over the value recorded in the catalogue.
+      element.addEventListener('loadedmetadata', () => {
+        if (Number.isFinite(element.duration) && element.duration > 0) {
+          this.listeners.onDuration?.(element.duration);
+        }
+      });
+      element.addEventListener('error', () => {
+        // Tearing an element down clears its src, which fires error; ignore that.
+        if (this.element !== element) return;
+        // A browser missing the codec (AAC is absent from plain Chromium builds,
+        // for one) would otherwise leave the track silent, so fall back to the
+        // synthesised stand-in rather than playing nothing at all.
+        console.warn(
+          `Could not decode "${song.audioUrl}" for "${song.title}"; playing the synthesised stand-in instead.`
+        );
+        const wasPlaying = this.playing;
+        this.element = null;
+        this.configureSynth(song);
+        this.listeners.onDuration?.(song.duration || 180);
+        if (wasPlaying) void this.play();
+      });
       element.addEventListener('ended', () => {
         this.playing = false;
         this.listeners.onEnded?.();
@@ -108,7 +130,13 @@ export class AudioEngine {
       return;
     }
 
+    this.configureSynth(song);
+  }
+
+  private configureSynth(song: Song) {
     this.element = null;
+    this.offset = 0;
+    this.beat = 0;
     this.seed = hashString(song.id);
     // 84–108 bpm, and a root between A3 and D4, so tracks differ from each other.
     const tempo = 84 + Math.floor(rand(this.seed, 1) * 24);
