@@ -67,10 +67,7 @@ export default function Player({
   const seconds = currentTime % 60;
 
   return (
-    <div
-      className={`fixed bottom-0 left-0 right-0 bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 border-t border-purple-300 transition-all duration-300 ${
-        isExpanded ? 'bottom-0 h-auto' : 'h-24'
-      } shadow-lg`}>
+    <div className="z-20 shrink-0 border-t border-purple-300 bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 shadow-[0_-4px_12px_rgba(168,85,247,0.12)]">
       {/* Progress Bar */}
       <div className="h-1 bg-purple-200">
         <div
@@ -78,105 +75,102 @@ export default function Player({
           style={{ width: `${progress}%` }}></div>
       </div>
 
-      {/* Player Content */}
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          {/* Song Info */}
-          <div
-            className="flex-1 cursor-pointer hover:opacity-80"
-            onClick={() => setIsExpanded(!isExpanded)}>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-xl">
-                🎵
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-purple-900 truncate">{currentSong.title}</p>
-                <p className="text-sm text-purple-600 truncate">{currentSong.artist}</p>
-              </div>
-            </div>
+      {/* Three regions: track on the left, transport in the middle, extras on the right */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6 md:grid-cols-3">
+        {/* Song Info */}
+        <div
+          className="flex min-w-0 cursor-pointer items-center gap-3 hover:opacity-80"
+          onClick={() => setIsExpanded(!isExpanded)}>
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-pink-300 to-purple-300 text-xl">
+            {currentSong.image ? (
+              <img src={currentSong.image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              '🎵'
+            )}
           </div>
-
-          {/* Controls */}
-          <div className="flex items-center gap-4 ml-8">
-            {/* Time Display */}
-            <div className="text-xs text-purple-600 font-mono w-12 text-right">
-              {minutes}:{seconds.toString().padStart(2, '0')}
-            </div>
-
-            {/* Volume Control */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm">🔊</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-20 h-1 bg-purple-300 rounded cursor-pointer"
-              />
-            </div>
-
-            {/* Playback Controls */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handlePrevious}
-                className="text-purple-600 hover:text-purple-800 transition hover:scale-110"
-                title="Previous">
-                ⏮️
-              </button>
-              <button
-                onClick={onTogglePause}
-                className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white p-3 rounded-full transition transform hover:scale-105 shadow-md"
-                title={isPlaying ? 'Pause' : 'Play'}>
-                {isPlaying ? '⏸️' : '▶️'}
-              </button>
-              <button
-                onClick={handleNext}
-                className="text-purple-600 hover:text-purple-800 transition hover:scale-110"
-                title="Next">
-                ⏭️
-              </button>
-            </div>
-
-            {/* Full Screen Button */}
-            <button
-              onClick={onOpenFullScreen}
-              className="text-purple-600 hover:text-purple-800 transition text-xl hover:scale-110"
-              title="Full screen player">
-              ⛶
-            </button>
-
-            {/* Expand Toggle */}
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-purple-600 hover:text-purple-800 transition">
-              {isExpanded ? '⏬' : '⏫'}
-            </button>
+          <div className="min-w-0">
+            <p className="truncate font-bold text-purple-900">{currentSong.title}</p>
+            <p className="truncate text-sm text-purple-600">{currentSong.artist}</p>
           </div>
         </div>
 
-        {/* Expanded View - Playlist */}
-        {isExpanded && (
-          <div className="mt-6 max-h-64 overflow-y-auto bg-white/40 rounded-lg p-4">
-            <h3 className="text-purple-900 font-bold mb-4">Now Playing Queue</h3>
-            <div className="space-y-2">
-              {queue.slice(currentIndex, currentIndex + 5).map((song, idx) => (
-                <div
-                  key={song.id}
-                  onClick={() => onSongChange(currentIndex + idx)}
-                  className={`p-3 rounded-lg cursor-pointer transition ${
-                    idx === 0
-                      ? 'bg-gradient-to-r from-pink-300 to-purple-300 text-purple-900 font-semibold'
-                      : 'bg-purple-100/50 text-purple-700 hover:bg-purple-200/50'
-                  }`}>
-                  <p className="font-semibold truncate">{song.title}</p>
-                  <p className="text-xs truncate">{song.artist}</p>
-                </div>
-              ))}
-            </div>
+        {/* Playback Controls */}
+        <div className="col-start-2 flex items-center justify-center gap-3 md:col-start-2">
+          <button
+            onClick={handlePrevious}
+            className="text-purple-600 transition hover:scale-110 hover:text-purple-800"
+            title="Previous">
+            ⏮️
+          </button>
+          <button
+            onClick={onTogglePause}
+            className="rounded-full bg-gradient-to-r from-pink-400 to-rose-400 p-3 text-white shadow-md transition hover:scale-105 hover:from-pink-500 hover:to-rose-500"
+            title={isPlaying ? 'Pause' : 'Play'}>
+            {isPlaying ? '⏸️' : '▶️'}
+          </button>
+          <button
+            onClick={handleNext}
+            className="text-purple-600 transition hover:scale-110 hover:text-purple-800"
+            title="Next">
+            ⏭️
+          </button>
+          <span className="ml-1 hidden w-12 text-right font-mono text-xs text-purple-600 sm:inline">
+            {minutes}:{seconds.toString().padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Volume + view toggles — hidden on narrow screens where they do not fit */}
+        <div className="col-span-2 hidden items-center justify-end gap-4 md:col-span-1 md:flex">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🔊</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="h-1 w-20 cursor-pointer rounded bg-purple-300"
+              aria-label="Volume"
+            />
           </div>
-        )}
+
+          <button
+            onClick={onOpenFullScreen}
+            className="text-xl text-purple-600 transition hover:scale-110 hover:text-purple-800"
+            title="Full screen player">
+            ⛶
+          </button>
+
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-purple-600 transition hover:text-purple-800"
+            title={isExpanded ? 'Hide queue' : 'Show queue'}>
+            {isExpanded ? '⏬' : '⏫'}
+          </button>
+        </div>
       </div>
+
+      {/* Expanded View - Playlist */}
+      {isExpanded && (
+        <div className="max-h-56 overflow-y-auto border-t border-purple-200 bg-white/40 px-4 py-4 sm:px-6">
+          <h3 className="mb-3 font-bold text-purple-900">Now Playing Queue</h3>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {queue.slice(currentIndex, currentIndex + 6).map((song, idx) => (
+              <div
+                key={song.id}
+                onClick={() => onSongChange(currentIndex + idx)}
+                className={`cursor-pointer rounded-lg p-3 transition ${
+                  idx === 0
+                    ? 'bg-gradient-to-r from-pink-300 to-purple-300 font-semibold text-purple-900'
+                    : 'bg-purple-100/50 text-purple-700 hover:bg-purple-200/50'
+                }`}>
+                <p className="truncate font-semibold">{song.title}</p>
+                <p className="truncate text-xs">{song.artist}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

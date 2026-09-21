@@ -34,12 +34,12 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
       />
 
       {/* Featured Songs Section */}
-      <div id="featured-songs" className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 py-20 px-4">
+      <div id="featured-songs" className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 px-4 py-14 sm:px-6 md:py-20">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-light tracking-widest bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent mb-3 uppercase">Featured Songs</h2>
-          <p className="text-purple-600 mb-12 font-light">Handpicked tracks for you</p>
+          <h2 className="mb-3 bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-3xl font-light uppercase tracking-widest text-transparent sm:text-4xl md:text-5xl">Featured Songs</h2>
+          <p className="mb-8 font-light text-purple-600 md:mb-12">Handpicked tracks for you</p>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {featuredSongs.map((song) => (
               <div
                 key={song.id}
@@ -78,12 +78,12 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
       </div>
 
       {/* Trending Now Section */}
-      <div className="bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 py-20 px-4">
+      <div className="bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 px-4 py-14 sm:px-6 md:py-20">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-light tracking-widest bg-gradient-to-r from-pink-700 to-indigo-700 bg-clip-text text-transparent mb-3 uppercase">Trending Now</h2>
-          <p className="text-purple-600 mb-12 font-light">What everyone is listening to</p>
+          <h2 className="mb-3 bg-gradient-to-r from-pink-700 to-indigo-700 bg-clip-text text-3xl font-light uppercase tracking-widest text-transparent sm:text-4xl md:text-5xl">Trending Now</h2>
+          <p className="mb-8 font-light text-purple-600 md:mb-12">What everyone is listening to</p>
 
-          <div className="space-y-3">
+          <div className="grid gap-3 xl:grid-cols-2">
             {trendingSongs.map((song, index) => (
               <div
                 key={song.id}

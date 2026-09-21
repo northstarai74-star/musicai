@@ -39,7 +39,7 @@ export default function PremiumPage() {
   ];
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-b from-pink-100 via-purple-100 to-blue-100">
+    <div className="min-h-full bg-gradient-to-b from-pink-100 via-purple-100 to-blue-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">

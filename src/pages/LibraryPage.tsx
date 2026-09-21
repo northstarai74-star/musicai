@@ -16,10 +16,10 @@ export default function LibraryPage({
   const languages = ['Hindi', 'Punjabi', 'English'];
 
   return (
-    <div className="min-h-screen p-8 bg-gradient-to-b from-pink-100 via-purple-100 to-blue-100">
+    <div className="min-h-full bg-gradient-to-b from-pink-100 via-purple-100 to-blue-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-12">
-          <h1 className="text-5xl font-black mb-3">
+        <div className="mb-8 lg:mb-12">
+          <h1 className="mb-3 text-3xl font-black sm:text-4xl lg:text-5xl">
             <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 text-transparent bg-clip-text">
               Your Library
             </span>
