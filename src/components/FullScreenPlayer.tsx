@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Song } from '../types';
 
 interface FullScreenPlayerProps {
@@ -11,6 +10,11 @@ interface FullScreenPlayerProps {
   queue: Song[];
   currentIndex: number;
   onSongChange: (index: number) => void;
+  currentTime: number;
+  duration: number;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
+  onSeek: (seconds: number) => void;
 }
 
 export default function FullScreenPlayer({
@@ -23,24 +27,12 @@ export default function FullScreenPlayer({
   queue,
   currentIndex,
   onSongChange,
+  currentTime,
+  duration,
+  volume,
+  onVolumeChange,
+  onSeek,
 }: FullScreenPlayerProps) {
-  const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(70);
-
-  useEffect(() => {
-    if (isPlaying && currentSong) {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            if (onNextSong) onNextSong();
-            return 0;
-          }
-          return prev + 1 / (currentSong.duration || 180);
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying, currentSong, onNextSong]);
 
   const handleNext = () => {
     if (currentIndex < queue.length - 1) {
@@ -60,10 +52,11 @@ export default function FullScreenPlayer({
 
   if (!currentSong) return null;
 
-  const currentTime = Math.floor((progress / 100) * (currentSong.duration || 180));
-  const totalTime = currentSong.duration || 180;
-  const minutes = Math.floor(currentTime / 60);
-  const seconds = currentTime % 60;
+  const totalTime = duration || currentSong.duration || 180;
+  const progress = totalTime > 0 ? Math.min(100, (currentTime / totalTime) * 100) : 0;
+  const elapsed = Math.floor(currentTime);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
   const totalMinutes = Math.floor(totalTime / 60);
   const totalSeconds = totalTime % 60;
 
@@ -159,10 +152,12 @@ export default function FullScreenPlayer({
         <div className="w-full max-w-2xl px-4 animate-slideUp flex-shrink-0">
           <input
             type="range"
-            min="0"
-            max="100"
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
+            min={0}
+            max={totalTime}
+            step={1}
+            value={Math.min(currentTime, totalTime)}
+            onChange={(e) => onSeek(Number(e.target.value))}
+            aria-label="Seek"
             className="w-full h-3 bg-purple-200 rounded-full cursor-pointer appearance-none accent-pink-400 hover:accent-pink-500 transition"
             style={{
               backgroundImage: `linear-gradient(to right, rgb(244, 114, 182) 0%, rgb(244, 114, 182) ${progress}%, rgb(216, 180, 254) ${progress}%, rgb(216, 180, 254) 100%)`
@@ -201,7 +196,7 @@ export default function FullScreenPlayer({
             min="0"
             max="100"
             value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
+            onChange={(e) => onVolumeChange(Number(e.target.value))}
             className="flex-1 h-3 bg-purple-200 rounded-full cursor-pointer appearance-none accent-purple-500"
           />
           <span className="text-purple-700 font-semibold w-12 text-right text-sm">{volume}%</span>

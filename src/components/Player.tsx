@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Song } from '../types';
 
 interface PlayerProps {
@@ -11,6 +11,11 @@ interface PlayerProps {
   currentIndex: number;
   onSongChange: (index: number) => void;
   onOpenFullScreen?: () => void;
+  currentTime: number;
+  duration: number;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
+  onSeek: (seconds: number) => void;
 }
 
 export default function Player({
@@ -23,26 +28,13 @@ export default function Player({
   currentIndex,
   onSongChange,
   onOpenFullScreen,
+  currentTime,
+  duration,
+  volume,
+  onVolumeChange,
+  onSeek,
 }: PlayerProps) {
-  const [progress, setProgress] = useState(0);
-  const [volume, setVolume] = useState(70);
   const [isExpanded, setIsExpanded] = useState(false);
-
-  useEffect(() => {
-    if (isPlaying && currentSong) {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            // Move to next song
-            if (onNextSong) onNextSong();
-            return 0;
-          }
-          return prev + 1 / (currentSong.duration || 180);
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isPlaying, currentSong, onNextSong]);
 
   const handleNext = () => {
     if (currentIndex < queue.length - 1) {
@@ -62,18 +54,27 @@ export default function Player({
 
   if (!currentSong) return null;
 
-  const currentTime = Math.floor((progress / 100) * (currentSong.duration || 180));
-  const minutes = Math.floor(currentTime / 60);
-  const seconds = currentTime % 60;
+  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const elapsed = Math.floor(currentTime);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
 
   return (
     <div className="z-20 shrink-0 border-t border-purple-300 bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 shadow-[0_-4px_12px_rgba(168,85,247,0.12)]">
-      {/* Progress Bar */}
-      <div className="h-1 bg-purple-200">
-        <div
-          className="h-full bg-gradient-to-r from-pink-400 to-purple-400 transition-all"
-          style={{ width: `${progress}%` }}></div>
-      </div>
+      {/* Seek bar */}
+      <input
+        type="range"
+        min={0}
+        max={duration}
+        step={1}
+        value={Math.min(currentTime, duration)}
+        onChange={(e) => onSeek(Number(e.target.value))}
+        aria-label="Seek"
+        className="block h-1 w-full cursor-pointer appearance-none bg-purple-200 accent-pink-500"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgb(244,114,182) 0%, rgb(168,85,247) ${progress}%, rgb(233,213,255) ${progress}%)`,
+        }}
+      />
 
       {/* Three regions: track on the left, transport in the middle, extras on the right */}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:px-6 md:grid-cols-3">
@@ -128,7 +129,7 @@ export default function Player({
               min="0"
               max="100"
               value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
+              onChange={(e) => onVolumeChange(Number(e.target.value))}
               className="h-1 w-20 cursor-pointer rounded bg-purple-300"
               aria-label="Volume"
             />

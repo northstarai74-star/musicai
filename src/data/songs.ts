@@ -1,5 +1,10 @@
 import { Song } from '../types';
 
+// Tracks play through the Web Audio synthesiser in AudioEngine, which stands in
+// for the recording. To play an actual file instead, drop it in public/audio/
+// and add `audioUrl: '/audio/<file>.mp3'` to that song — the engine switches to
+// an <audio> element and nothing else needs to change.
+
 export const songs: Song[] = [
   {
     id: '1',

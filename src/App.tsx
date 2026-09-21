@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
@@ -13,6 +13,7 @@ import PremiumPage from './pages/PremiumPage';
 import Footer from './components/Footer';
 import { Song } from './types';
 import { songs } from './data/songs';
+import { useAudioPlayer } from './hooks/useAudioPlayer';
 
 type PageType = 'home' | 'search' | 'likes' | 'library' | 'premium';
 
@@ -51,14 +52,18 @@ function App() {
     setIsPlaying(!isPlaying);
   };
 
-  const handleNextSong = () => {
-    if (currentQueueIndex < currentQueue.length - 1) {
-      const nextIndex = currentQueueIndex + 1;
-      setCurrentQueueIndex(nextIndex);
+  const handleNextSong = useCallback(() => {
+    setCurrentQueueIndex((index) => {
+      if (index >= currentQueue.length - 1) {
+        setIsPlaying(false);
+        return index;
+      }
+      const nextIndex = index + 1;
       setCurrentSong(currentQueue[nextIndex]);
       setIsPlaying(true);
-    }
-  };
+      return nextIndex;
+    });
+  }, [currentQueue]);
 
   const handlePreviousSong = () => {
     if (currentQueueIndex > 0) {
@@ -82,6 +87,12 @@ function App() {
     setCurrentPage('search');
     setShowSearch(false);
   };
+
+  const { currentTime, duration, volume, setVolume, seek } = useAudioPlayer({
+    song: currentSong,
+    isPlaying,
+    onEnded: handleNextSong,
+  });
 
   const handlePageChange = (page: PageType) => {
     setCurrentPage(page);
@@ -171,6 +182,11 @@ function App() {
             currentIndex={currentQueueIndex}
             onSongChange={handleSongChange}
             onOpenFullScreen={() => setShowFullScreenPlayer(true)}
+            currentTime={currentTime}
+            duration={duration}
+            volume={volume}
+            onVolumeChange={setVolume}
+            onSeek={seek}
           />
           {showFullScreenPlayer && (
             <FullScreenPlayer
@@ -183,6 +199,11 @@ function App() {
               queue={currentQueue}
               currentIndex={currentQueueIndex}
               onSongChange={handleSongChange}
+              currentTime={currentTime}
+              duration={duration}
+              volume={volume}
+              onVolumeChange={setVolume}
+              onSeek={seek}
             />
           )}
         </>
