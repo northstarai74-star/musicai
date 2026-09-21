@@ -1,4 +1,5 @@
-import SongCard from '../components/SongCard';
+import EditorialGrid from '../components/EditorialGrid';
+import SectionHeading from '../components/SectionHeading';
 import { Song } from '../types';
 import { songs } from '../data/songs';
 
@@ -23,34 +24,27 @@ export default function SearchPage({
 
   return (
     <div className="min-h-full bg-gradient-to-b from-pink-100 via-purple-100 to-blue-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 lg:mb-12">
-          <h1 className="mb-3 text-3xl font-black sm:text-4xl lg:text-5xl">
-            <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-transparent bg-clip-text">
-              Search Results
-            </span>
-          </h1>
-          <p className="text-purple-600 text-xl">
-            Found {filteredSongs.length} result{filteredSongs.length !== 1 ? 's' : ''} for "{query}"
-          </p>
-        </div>
+      <div className="mx-auto max-w-7xl">
+        <SectionHeading
+          index={`${filteredSongs.length} result${filteredSongs.length !== 1 ? 's' : ''}`}
+          title="Search Results"
+          subtitle={`Matching "${query}"`}
+        />
 
         {filteredSongs.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {filteredSongs.map((song) => (
-              <SongCard
-                key={song.id}
-                song={song}
-                onPlay={onPlay}
-                isFavorite={favorites.has(song.id)}
-                onToggleFavorite={onToggleFavorite}
-              />
-            ))}
-          </div>
+          <EditorialGrid
+            songs={filteredSongs}
+            onPlay={onPlay}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
+            leadEyebrow="Best match"
+          />
         ) : (
-          <div className="text-center py-20">
-            <p className="text-purple-600 text-lg">No songs found matching "{query}"</p>
-            <p className="text-purple-500 text-sm mt-2">Try searching for a different artist or song name</p>
+          <div className="rounded-2xl border-2 border-dashed border-pink-400 py-20 text-center">
+            <p className="text-lg text-purple-600">No songs found matching "{query}"</p>
+            <p className="mt-2 text-sm text-purple-500">
+              Try searching for a different artist or song name
+            </p>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 import Hero from '../components/Hero';
-import FeaturedSongs from '../components/FeaturedSongs';
-import LanguageCategories from '../components/LanguageCategories';
-import TrendingNow from '../components/TrendingNow';
+import EditorialGrid from '../components/EditorialGrid';
+import SectionHeading from '../components/SectionHeading';
+import SongTile from '../components/SongTile';
 import { Song } from '../types';
 import { songs } from '../data/songs';
 
@@ -13,8 +13,9 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageChange }: HomePageProps) {
-  const featuredSongs = songs.filter(s => s.featured);
-  const trendingSongs = songs.filter(s => s.trending).slice(0, 5);
+  const featuredSongs = songs.filter((s) => s.featured);
+  const trendingSongs = songs.filter((s) => s.trending).slice(0, 5);
+  const [leadTrending, ...restTrending] = trendingSongs;
 
   const handlePlayFeatured = () => {
     if (featuredSongs.length > 0) {
@@ -33,83 +34,98 @@ export default function HomePage({ onPlay, favorites, onToggleFavorite, onPageCh
         onNavigate={onPageChange || (() => {})}
       />
 
-      {/* Featured Songs Section */}
-      <div id="featured-songs" className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 px-4 py-14 sm:px-6 md:py-20">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="mb-3 bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-3xl font-light uppercase tracking-widest text-transparent sm:text-4xl md:text-5xl">Featured Songs</h2>
-          <p className="mb-8 font-light text-purple-600 md:mb-12">Handpicked tracks for you</p>
+      {/* Featured — the asymmetric lead spread */}
+      <section
+        id="featured-songs"
+        className="bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 px-4 py-14 sm:px-6 md:py-20">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeading
+            index="01 / Editors' picks"
+            title="Featured Songs"
+            subtitle="Handpicked tracks for you, led by the record we cannot stop playing."
+            action={
+              <button
+                onClick={() => onPageChange?.('library')}
+                className="shrink-0 rounded-full border-2 border-purple-500 px-5 py-2 text-sm font-medium text-purple-700 transition hover:bg-white/60">
+                See all {songs.length} tracks →
+              </button>
+            }
+          />
+          <EditorialGrid
+            songs={featuredSongs}
+            onPlay={onPlay}
+            favorites={favorites}
+            onToggleFavorite={onToggleFavorite}
+            leadEyebrow="Editors' pick"
+          />
+        </div>
+      </section>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {featuredSongs.map((song) => (
-              <div
-                key={song.id}
-                onClick={() => onPlay(song)}
-                className="group flex flex-col rounded overflow-hidden bg-gradient-to-br from-pink-200 to-purple-200 shadow-lg hover:shadow-2xl transition-all transform hover:scale-105 border-2 border-pink-300 cursor-pointer">
-                <div className="relative overflow-hidden h-40 bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300">
-                  <img src={song.image} alt={song.title} className="w-full h-full object-cover" />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlay(song);
-                    }}
-                    className="absolute bottom-3 right-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110">
-                    ▶
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(song.id);
-                    }}
-                    className="absolute top-3 right-3 text-xl opacity-0 group-hover:opacity-100 transition-all">
-                    {favorites.has(song.id) ? '❤️' : '🤍'}
-                  </button>
-                </div>
-                <div className="p-4 flex-1 flex flex-col">
-                  <h3 className="font-semibold text-purple-900 text-sm truncate">{song.title}</h3>
-                  <p className="text-xs text-purple-600 truncate mt-1">{song.artist}</p>
-                  <div className="mt-auto pt-3 flex items-center justify-between text-xs">
-                    <span className="text-purple-600 font-medium">{Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}</span>
-                  </div>
-                </div>
+      {/* Trending — a lead tile beside a ranked chart */}
+      <section className="bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 px-4 py-14 sm:px-6 md:py-20">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeading
+            index="02 / The chart"
+            title="Trending Now"
+            subtitle="What everyone is listening to this week."
+          />
+
+          <div className="grid gap-6 lg:grid-cols-5">
+            {leadTrending && (
+              <div className="grid auto-rows-[150px] grid-cols-2 sm:auto-rows-[170px] lg:col-span-2 lg:auto-rows-[185px]">
+                <SongTile
+                  song={leadTrending}
+                  variant="lead"
+                  eyebrow="No. 1 this week"
+                  onPlay={onPlay}
+                  isFavorite={favorites.has(leadTrending.id)}
+                  onToggleFavorite={onToggleFavorite}
+                />
               </div>
-            ))}
+            )}
+
+            <ol className="divide-y divide-pink-400/50 border-y-2 border-pink-400/60 lg:col-span-3">
+              {restTrending.map((song, index) => (
+                <li key={song.id}>
+                  <button
+                    onClick={() => onPlay(song)}
+                    className="group flex w-full items-center gap-4 py-4 text-left transition hover:bg-white/40 sm:gap-6 sm:px-3">
+                    <span className="w-10 shrink-0 text-2xl font-black text-pink-500/80 sm:w-14 sm:text-4xl">
+                      {(index + 2).toString().padStart(2, '0')}
+                    </span>
+                    <img
+                      src={song.image}
+                      alt=""
+                      className="hidden h-14 w-14 shrink-0 rounded-lg border-2 border-pink-300 object-cover sm:block"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-bold text-purple-900 group-hover:text-purple-700">
+                        {song.title}
+                      </span>
+                      <span className="block truncate text-sm text-purple-600">{song.artist}</span>
+                    </span>
+                    <span className="hidden shrink-0 rounded-full border border-purple-400 px-2 py-0.5 text-xs text-purple-700 md:inline">
+                      {song.language}
+                    </span>
+                    <span className="shrink-0 text-sm font-medium text-purple-700">
+                      {Math.floor(song.duration / 60)}:
+                      {(song.duration % 60).toString().padStart(2, '0')}
+                    </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(song.id);
+                      }}
+                      className="shrink-0 text-lg transition hover:scale-125">
+                      {favorites.has(song.id) ? '❤️' : '🤍'}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
-      </div>
-
-      {/* Trending Now Section */}
-      <div className="bg-gradient-to-r from-pink-200 via-purple-200 to-indigo-200 px-4 py-14 sm:px-6 md:py-20">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="mb-3 bg-gradient-to-r from-pink-700 to-indigo-700 bg-clip-text text-3xl font-light uppercase tracking-widest text-transparent sm:text-4xl md:text-5xl">Trending Now</h2>
-          <p className="mb-8 font-light text-purple-600 md:mb-12">What everyone is listening to</p>
-
-          <div className="grid gap-3 xl:grid-cols-2">
-            {trendingSongs.map((song, index) => (
-              <div
-                key={song.id}
-                onClick={() => onPlay(song)}
-                className="flex items-center rounded bg-gradient-to-r from-pink-300 via-purple-300 to-blue-300 p-4 hover:shadow-lg transition-all cursor-pointer group border-2 border-pink-400">
-                <span className="mr-4 font-black text-lg text-purple-700 w-8">#{index + 1}</span>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-purple-900 group-hover:text-purple-700">{song.title}</h4>
-                  <p className="text-sm text-purple-600">{song.artist}</p>
-                </div>
-                <div className="flex items-center gap-4 ml-4">
-                  <span className="text-sm text-purple-700 font-medium">{Math.floor(song.duration / 60)}:{(song.duration % 60).toString().padStart(2, '0')}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(song.id);
-                    }}
-                    className="text-lg opacity-0 group-hover:opacity-100 transition-all">
-                    {favorites.has(song.id) ? '❤️' : '🤍'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
