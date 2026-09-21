@@ -61,7 +61,7 @@ export const songs: Song[] = [
     duration: 213,
     featured: true,
     image: '/images/daydream.svg',
-    audioUrl: '/audio/daydream.m4a',
+    audioUrl: '/audio/daydream.mp4',
   },
   {
     id: '1',
