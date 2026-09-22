@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Song } from '../types';
 
 interface PlayerProps {
@@ -27,22 +27,48 @@ export default function Player({
   const [progress, setProgress] = useState(0);
   const [volume, setVolume] = useState(70);
   const [isExpanded, setIsExpanded] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    if (isPlaying && currentSong) {
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            // Move to next song
-            if (onNextSong) onNextSong();
-            return 0;
-          }
-          return prev + 1 / (currentSong.duration || 180);
-        });
-      }, 1000);
-      return () => clearInterval(interval);
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (currentSong?.audioUrl) {
+      audio.src = currentSong.audioUrl;
+      audio.volume = volume / 100;
     }
-  }, [isPlaying, currentSong, onNextSong]);
+
+    if (isPlaying && currentSong?.audioUrl) {
+      audio.play().catch(() => {
+        // Audio playback failed silently
+      });
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying, currentSong, volume]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateProgress = () => {
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+
+    const handleEnded = () => {
+      if (onNextSong) onNextSong();
+    };
+
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateProgress);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [onNextSong]);
 
   const handleNext = () => {
     if (currentIndex < queue.length - 1) {
@@ -177,6 +203,7 @@ export default function Player({
           </div>
         )}
       </div>
+      <audio ref={audioRef} crossOrigin="anonymous" />
     </div>
   );
 }
