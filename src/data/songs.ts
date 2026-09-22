@@ -99,6 +99,7 @@ export const songs: Song[] = [
     language: 'Punjabi',
     duration: 302,
     featured: true,
+    image: '/images/song-1.avif',
     audioUrl: '/_blob/3d4289cba04b427a8433c4f97b973b4e',
   },
   {
@@ -108,6 +109,7 @@ export const songs: Song[] = [
     language: 'Punjabi',
     duration: 176,
     featured: true,
+    image: '/images/song-2.jpg',
     audioUrl: '/_blob/da3e5b29c95b2f3495a1af99ace4c77e',
   },
   {
@@ -117,6 +119,7 @@ export const songs: Song[] = [
     language: 'Punjabi',
     duration: 263,
     featured: true,
+    image: '/images/song-3.webp',
     audioUrl: '/_blob/53206fa2a56b0161578151e8fba1b274',
   },
   {
@@ -126,6 +129,7 @@ export const songs: Song[] = [
     language: 'Punjabi',
     duration: 238,
     featured: true,
+    image: '/images/song-4.jpg',
     audioUrl: '/_blob/ddceae554fbcbc8d30963d6fb6db1db6',
   },
 ];
