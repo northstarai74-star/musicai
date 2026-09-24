@@ -11,8 +11,7 @@ import LibraryPage from './pages/LibraryPage';
 import PremiumPage from './pages/PremiumPage';
 import Footer from './components/Footer';
 import { Song } from './types';
-import { songs as localSongs } from './data/songs';
-import { fetchSongs } from './services/songService';
+import { songs } from './data/songsWithAudio';
 
 type PageType = 'home' | 'search' | 'likes' | 'library' | 'premium';
 
@@ -23,22 +22,9 @@ function App() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentQueue, setCurrentQueue] = useState<Song[]>(localSongs);
+  const [currentQueue, setCurrentQueue] = useState<Song[]>(songs);
   const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
   const [showFullScreenPlayer, setShowFullScreenPlayer] = useState(false);
-  const [songs, setSongs] = useState<Song[]>(localSongs);
-
-  useEffect(() => {
-    loadSongs();
-  }, []);
-
-  const loadSongs = async () => {
-    const fetchedSongs = await fetchSongs();
-    if (fetchedSongs.length > 0) {
-      setSongs(fetchedSongs);
-      setCurrentQueue(fetchedSongs);
-    }
-  };
 
   const toggleFavorite = (songId: string) => {
     const newFavorites = new Set(favorites);
