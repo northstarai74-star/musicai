@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import SearchModal from './components/SearchModal';
 import Player from './components/Player';
 import FullScreenPlayer from './components/FullScreenPlayer';
+import AiAssistant from './components/AiAssistant';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import LikesPage from './pages/LikesPage';
@@ -99,6 +100,8 @@ function App() {
           onSearch={handleSearch}
         />
       )}
+
+      {currentSong && <AiAssistant currentSong={currentSong} allSongs={songs} />}
 
       <div className="flex flex-1 w-full">
         <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
